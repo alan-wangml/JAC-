@@ -1,0 +1,355 @@
+# 电池安全故障模型注册表
+# 用途：battery-fault-agent 基于此表识别失效类型，分发至对应算法 Skill
+# 最后更新：2026-05-22
+# 维护说明：新增算法时，在 failure_types 下添加新条目，status 设为 placeholder，
+#           待 Python 模型和专属 Skill 开发完成后改为 ready
+
+workspace_skills_base: "算法调优"    # 所有 Skill 目录的相对根（相对 workspace）
+workspace_models_base: "算法调优"    # 所有模型文件的相对根
+
+# ═══════════════════════════════════════════════════════════════════
+#  实时算法
+# ═══════════════════════════════════════════════════════════════════
+
+failure_types:
+
+  # ── 热失控（ap16）────────────────────────────────────────────────
+  thermal_runaway:
+    name: 热失控
+    algorithm: ap16
+    version: "V1.0"
+    skill: ap16_热失控实时              # Skill 目录（在 workspace_skills_base 下，含 SKILL.md）
+    status: ready                      # ready | placeholder
+    model_path: "ap16_热失控实时/thermal_runaway_realtime.py"
+    design_doc: "ap16_热失控实时/热失控实时算法设计文档.md"
+    keywords: [热失控, 过温, 温升异常, 起火, 冒烟, 高温, 温度突变, thermal runaway]
+    auto_detect_signals:
+      max_temp_gt: 55
+      temp_diff_gt: 30
+      min_volt_lt: 1300
+      max_volt_gt: 4500
+      volt_diff_gt: 300
+    notes: >
+      ap16 实时帧级检测。触发组合：C1（温度×电压）、C2（任意×B5绝缘）、C3（任意×采样异常×iso≠0）。
+      2026-05-22 工作簿2分析建议新增 C4（B3独立）和 C5（大压差独立）。
+
+  # ── 绝缘异常 lv2（ap19）──────────────────────────────────────────
+  insulation_lv2:
+    name: 绝缘异常_lv2
+    algorithm: ap19
+    version: null
+    skill: alarm-miss-analysis
+    status: placeholder
+    model_path: null
+    design_doc: "ap19_绝缘异常_lv2/README.md"
+    keywords: [绝缘异常, 绝缘电阻, 绝缘故障, 漏电, iso异常, 绝缘下降, lv2, 二级]
+    auto_detect_signals:
+      iso_resistance_lt: 100
+    notes: "实时告警，lv2 二级响应。暂无 Python 模型，分析时需用户提供阈值条件。"
+
+  # ── 绝缘异常 lv3（ap20）──────────────────────────────────────────
+  insulation_lv3:
+    name: 绝缘异常_lv3
+    algorithm: ap20
+    version: null
+    skill: alarm-miss-analysis
+    status: placeholder
+    model_path: null
+    design_doc: "ap20_绝缘异常_lv3/README.md"
+    keywords: [绝缘异常_lv3, 三级绝缘, 绝缘持续异常, lv3]
+    auto_detect_signals:
+      iso_resistance_lt: 100
+    notes: "实时告警，lv3 三级响应，绝缘未恢复持续时间触发。"
+
+  # ── 实时隐患告警（ap21）──────────────────────────────────────────
+  realtime_hazard:
+    name: 实时隐患告警
+    algorithm: ap21
+    version: "V1.0"
+    skill: alarm-miss-analysis
+    status: placeholder
+    model_path: null
+    design_doc: "ap21_实时隐患告警/README.md"
+    keywords: [实时隐患, 隐患告警, 综合告警, 多指标异常]
+    auto_detect_signals:
+      multi_signal: true
+    notes: "100帧滑动窗口，6类指标加权求和，综合因子>10触发。"
+
+  # ── 低电量异常（otr lv1/2/3）────────────────────────────────────
+  low_soc_lv1:
+    name: 低电量异常_lv1
+    algorithm: otr_low_soc
+    version: "V1.0"
+    skill: alarm-miss-analysis
+    status: placeholder
+    model_path: null
+    design_doc: "otr_低电量_lv1/README.md"
+    keywords: [低电量, 低电, 过放, 深放, lv1]
+    notes: "离线预警，基础低电量异常检测。"
+
+  low_soc_lv2:
+    name: 低电量异常_lv2
+    algorithm: otr_low_soc
+    version: "V1.0"
+    skill: alarm-miss-analysis
+    status: placeholder
+    model_path: null
+    design_doc: "otr_低电量_lv2/README.md"
+    keywords: [低电量_lv2, 中等严重低电]
+    notes: "Algorithm_4972a5f265，中等严重程度。"
+
+  low_soc_lv3:
+    name: 低电量异常_lv3
+    algorithm: otr_low_soc
+    version: "V1.0"
+    skill: alarm-miss-analysis
+    status: placeholder
+    model_path: null
+    design_doc: "otr_低电量_lv3/README.md"
+    keywords: [低电量_lv3, 严重低电, 三级低电]
+    notes: "Algorithm_4972a5f265，严重程度，三级告警。"
+
+  # ── 换电站实时自放电 ──────────────────────────────────────────────
+  station_self_discharge:
+    name: 换电站实时自放电
+    algorithm: otr_selfdch_station
+    version: "V1.0"
+    skill: alarm-miss-analysis
+    status: placeholder
+    model_path: null
+    design_doc: "otr_换电站实时自放电/README.md"
+    keywords: [换电站自放电, 站端自放电, 端云结合, 自放电实时]
+    auto_detect_signals:
+      volt_drop_rate_lt: 1.5
+      outlier_rate_gt: 0.66
+    notes: "仅适用 NCM 电池，充电截止后 t0-t1 5分钟压降判断。"
+
+# ═══════════════════════════════════════════════════════════════════
+#  预警层 - 压差离群族
+# ═══════════════════════════════════════════════════════════════════
+
+  # ── 压差离群 LFP（ap2）──────────────────────────────────────────
+  vdiff_outlier_lfp:
+    name: 压差离群_LFP
+    algorithm: ap2
+    version: "V1.0"
+    skill: alarm-miss-analysis
+    status: placeholder
+    model_path: null
+    design_doc: "ap2_压差离群_lfp/README.md"
+    keywords: [压差离群, 压差异常, lfp压差, 铁锂压差]
+    auto_detect_signals:
+      volt_diff_gt: 25
+    notes: "适用 LFP 电芯，基于中位数偏离判定。"
+
+  # ── 压差离群 NCM（ap3）──────────────────────────────────────────
+  vdiff_outlier_ncm:
+    name: 压差离群_NCM
+    algorithm: ap3
+    version: "V1.0"
+    skill: alarm-miss-analysis
+    status: placeholder
+    model_path: null
+    design_doc: "ap3_压差离群_ncm/README.md"
+    keywords: [压差离群_ncm, 三元压差, ncm压差]
+    auto_detect_signals:
+      volt_diff_gt: 16
+    notes: "适用 NCM 电芯，基于中位数偏离判定，偏离阈值 0.07。"
+
+  # ── 压差偏高（ap8）──────────────────────────────────────────────
+  vdiff_high:
+    name: 压差偏高
+    algorithm: ap8
+    version: "V1.0"
+    skill: alarm-miss-analysis
+    status: placeholder
+    model_path: null
+    design_doc: "ap8_压差偏高/README.md"
+    keywords: [压差偏高, 大压差, 高压差]
+    auto_detect_signals:
+      volt_diff_gt: 100
+    notes: "充电事件，大压差次数 > 1 触发。"
+
+  # ── parking 自放电预警 ──────────────────────────────────────────
+  vdiff_parking_selfdch:
+    name: 压差离群_parking自放电
+    algorithm: ap_vdiff_parking
+    version: "V2.0"
+    skill: alarm-miss-analysis
+    status: placeholder
+    model_path: null
+    design_doc: "vdiff_parking自放电/README.md"
+    keywords: [parking自放电, 静置自放电, 去极化]
+    notes: "基于 t0-t1 去极化后压差判定自放电异常。"
+
+  # ── 压差统计模型 ────────────────────────────────────────────────
+  vdiff_stat:
+    name: 压差离群_统计模型
+    algorithm: ap_vdiff_stat
+    version: "V1.0"
+    skill: alarm-miss-analysis
+    status: placeholder
+    model_path: null
+    design_doc: "vdiff_统计模型/README.md"
+    keywords: [压差统计, 压差分位数, 压差香农熵]
+    notes: "Algorithm_f0a173ec73，IQR + 熵双条件判定。"
+
+  # ── AlphaQ ──────────────────────────────────────────────────────
+  vdiff_alphaq:
+    name: 压差离群_AlphaQ
+    algorithm: ap_alphaq
+    version: "V1.0"
+    skill: alarm-miss-analysis
+    status: placeholder
+    model_path: null
+    design_doc: "vdiff_AlphaQ/README.md"
+    keywords: [AlphaQ, 排名变化, 70kWh]
+    notes: "仅适用 70kWh 电池，充电排名变化判定。"
+
+  # ── 压差数理模型 ────────────────────────────────────────────────
+  vdiff_math:
+    name: 压差离群_数理模型
+    algorithm: ap_vdiff_math
+    version: "V2.0"
+    skill: alarm-miss-analysis
+    status: placeholder
+    model_path: null
+    design_doc: "vdiff_数学模型/README.md"
+    keywords: [压差数理, 空间投影, 压差归一化]
+    notes: "Algorithm_103eebf143，多因子空间投影后分位数离群判定。"
+
+# ═══════════════════════════════════════════════════════════════════
+#  预警层 - 温差离群族
+# ═══════════════════════════════════════════════════════════════════
+
+  # ── 温差离群专家模型（ap9）──────────────────────────────────────
+  tempdiff_expert:
+    name: 温差离群_专家模型
+    algorithm: ap9
+    version: "V2.0"
+    skill: alarm-miss-analysis
+    status: placeholder
+    model_path: null
+    design_doc: "ap9_温差离群_专家/README.md"
+    keywords: [温差离群, 温差异常, 单体温度分散, 局部过热]
+    auto_detect_signals:
+      temp_diff_gt: 15
+    notes: "三场景判定（温差阈值/大温差/充停结合），适用所有事件类型。"
+
+  # ── 温差离群统计模型（ap10）─────────────────────────────────────
+  tempdiff_stat:
+    name: 温差离群_统计模型
+    algorithm: ap10
+    version: "V1.0"
+    skill: alarm-miss-analysis
+    status: placeholder
+    model_path: null
+    design_doc: "ap10_温差离群_统计/README.md"
+    keywords: [温差统计, 温差香农熵]
+    notes: "Algorithm_ec97501447，设备类型分组统计 + 日均温差判定。"
+
+  # ── 温差离群数理模型（ap11）─────────────────────────────────────
+  tempdiff_math:
+    name: 温差离群_数理模型（已停用）
+    algorithm: ap11
+    version: "V1.0"
+    skill: alarm-miss-analysis
+    status: placeholder
+    model_path: null
+    design_doc: "ap11_温差离群_数理/README.md"
+    keywords: [温差数理]
+    notes: "Algorithm_e0878eaa21，已停用，功能由 ap9+ap10 覆盖。"
+
+# ═══════════════════════════════════════════════════════════════════
+#  预警层 - 采样异常族
+# ═══════════════════════════════════════════════════════════════════
+
+  # ── 采样异常综合（ap12）─────────────────────────────────────────
+  sampling_comprehensive:
+    name: 采样异常_综合
+    algorithm: ap12
+    version: "V1.0"
+    skill: alarm-miss-analysis
+    status: placeholder
+    model_path: null
+    design_doc: "ap12_采样异常_综合/README.md"
+    keywords: [采样异常, 初始化异常, 采样综合, 数据质量]
+    notes: "Algorithm_3b0ecc5289，电压/温度/绝缘初始值频率判定。"
+
+  # ── 采样异常总压（ap13）─────────────────────────────────────────
+  sampling_pack_volt:
+    name: 采样异常_总压采样异常
+    algorithm: ap13
+    version: "V1.2"
+    skill: alarm-miss-analysis
+    status: placeholder
+    model_path: null
+    design_doc: "ap13_采样异常_总压/README.md"
+    keywords: [总压异常, 总压采样, 单体总压不匹配]
+    notes: "Algorithm_5cc8826925，总压与单体加和偏差 > 20V 触发，常见误报需注意。"
+
+  # ── 采样异常温度 ────────────────────────────────────────────────
+  sampling_temp:
+    name: 采样异常_温度
+    algorithm: ap_sampling_temp
+    version: "V1.0"
+    skill: alarm-miss-analysis
+    status: placeholder
+    model_path: null
+    design_doc: "sampling_采样异常_温度/README.md"
+    keywords: [温度采样异常, -40度温度采样]
+    notes: "Algorithm_3cec650c87，-40℃ 初始值帧数 > 60 触发。"
+
+  # ── 采样异常电压对称性 ───────────────────────────────────────────
+  sampling_volt_symmetry:
+    name: 采样异常_电压对称性抖动
+    algorithm: ap_sampling_symmetry
+    version: "V1.0"
+    skill: alarm-miss-analysis
+    status: placeholder
+    model_path: null
+    design_doc: "sampling_采样异常_电压对称性/README.md"
+    keywords: [电压对称性, 采样抖动, 相邻电芯抖动]
+    notes: "Algorithm_21ffd66732，相邻编号电芯对称性抖动，IQR离群判定。"
+
+# ═══════════════════════════════════════════════════════════════════
+#  诊断层
+# ═══════════════════════════════════════════════════════════════════
+
+  # ── 诊断层电压类（ap28）─────────────────────────────────────────
+  diagnosis_volt:
+    name: 诊断层_电压类
+    algorithm: ap28
+    version: null
+    skill: alarm-miss-analysis
+    status: placeholder
+    model_path: null
+    design_doc: "ap28_诊断_电压类/README.md"
+    keywords: [电压诊断, 自放电诊断, 内阻诊断, busbar诊断, P0201, P0202, P0203]
+    notes: >
+      融合 ap2/ap3/ap8/AlphaQ/统计/数理模型的上游输出，
+      LFP组+NCM组+通用组三路并行后融合，输出 P0201~P0309 诊断代码。
+
+  # ── 诊断层温度类（ap27）─────────────────────────────────────────
+  diagnosis_temp:
+    name: 诊断层_温度类
+    algorithm: ap27
+    version: null
+    skill: alarm-miss-analysis
+    status: placeholder
+    model_path: null
+    design_doc: "ap27_诊断_温度类/README.md"
+    keywords: [温度诊断, CSC温度采样, P0302, P0308]
+    notes: "融合 ap9/ap10/ap11 上游输出，基于疑似组持续时间和温度恢复判断，输出 P0302/P0308。"
+
+  # ── 诊断层采样类（ap29）─────────────────────────────────────────
+  diagnosis_sampling:
+    name: 诊断层_采样类
+    algorithm: ap29
+    version: null
+    skill: alarm-miss-analysis
+    status: placeholder
+    model_path: null
+    design_doc: "ap29_诊断_采样类/README.md"
+    keywords: [采样诊断, CSC电压采样, P0301, P0303, P0308]
+    notes: "融合 ap12/ap13/采样_温度/电压对称性 上游输出，sigma 离群判定后融合诊断。"
